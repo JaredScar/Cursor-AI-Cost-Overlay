@@ -1,0 +1,59 @@
+{
+  "name": "cursor-ai-cost-overlay",
+  "displayName": "Cursor AI Cost Overlay",
+  "description": "Real-time AI model pricing sidebar and status bar for Cursor IDE",
+  "version": "1.0.0",
+  "publisher": "cursor-ai-cost-overlay",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "repository": { "type": "git", "url": "https://github.com/cursor-ai-cost-overlay/cursor-ai-cost-overlay" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cursor-cost-overlay",
+          "title": "AI Cost Overlay",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "cursor-cost-overlay": [
+        {
+          "id": "cursorCostOverlay.panel",
+          "name": "Model Pricing",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "cursorCostOverlay.refreshPricing",
+        "title": "Cursor Cost: Refresh Pricing"
+      },
+      {
+        "command": "cursorCostOverlay.focusPanel",
+        "title": "Cursor Cost: Open Pricing Panel"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1"
+  }
+}

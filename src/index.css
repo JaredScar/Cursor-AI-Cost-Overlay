@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Reset ──────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  /* Background comes from VS Code's theme — don't override it */
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Use VS Code's font stack so the panel feels native */
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground, #cccccc);
+}
+
+/* ── Panel root ─────────────────────────────────────── */
+@layer components {
+  .panel-root {
+    @apply w-full flex flex-col;
+    min-height: 100vh;
+  }
+
+  /* ── VS Code-styled form controls ── */
+  .vsc-label {
+    @apply block text-[10px] font-semibold tracking-widest uppercase mb-1.5;
+    color: var(--vscode-descriptionForeground, #999);
+  }
+
+  .vsc-input {
+    @apply w-full rounded px-2 py-1 text-xs focus:outline-none transition-colors;
+    background: var(--vscode-input-background, #3c3c3c);
+    color: var(--vscode-input-foreground, #cccccc);
+    border: 1px solid var(--vscode-input-border, transparent);
+  }
+  .vsc-input:focus {
+    border-color: var(--vscode-focusBorder, #007fd4);
+  }
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background, rgba(121,121,121,0.4));
+  border-radius: 99px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground, rgba(121,121,121,0.7));
+}

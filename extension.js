@@ -36,10 +36,65 @@ function activate(context) {
     }
   }
 
+  /**
+   * Check price alerts and show notifications when triggered.
+   * Prevents duplicate notifications within 24 hours for the same alert.
+   */
+  function checkPriceAlerts(data) {
+    const settings = context.globalState.get('overlaySettings') || {};
+    const alerts = settings.priceAlerts || [];
+    if (!alerts.length || !data?.models?.length) return;
+
+    const alertHistory = settings.alertHistory || {};
+    const now = Date.now();
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    const newHistory = { ...alertHistory };
+    let triggered = false;
+
+    for (const alert of alerts) {
+      if (!alert.enabled) continue;
+
+      const model = data.models.find(m => m.id === alert.modelId);
+      if (!model) continue;
+
+      const currentPrice = model.inputPer1M;
+      const alertKey = `${alert.modelId}_${alert.threshold}`;
+      const lastTriggered = alertHistory[alertKey];
+
+      // Skip if triggered within last 24 hours
+      if (lastTriggered && (now - lastTriggered) < ONE_DAY) continue;
+
+      let shouldTrigger = false;
+      if (alert.direction === 'below' && currentPrice < alert.threshold) {
+        shouldTrigger = true;
+      } else if (alert.direction === 'above' && currentPrice > alert.threshold) {
+        shouldTrigger = true;
+      }
+
+      if (shouldTrigger) {
+        triggered = true;
+        newHistory[alertKey] = now;
+        const directionText = alert.direction === 'below' ? 'dropped below' : 'risen above';
+        vscode.window.showInformationMessage(
+          `AI Cost Alert: ${model.name} price has ${directionText} $${alert.threshold}/M (now $${currentPrice}/M)`
+        );
+      }
+    }
+
+    // Save updated history if any alerts triggered
+    if (triggered) {
+      settings.alertHistory = newHistory;
+      context.globalState.update('overlaySettings', settings);
+    }
+  }
+
   // Push pricing into the webview and status bar whenever it updates
   pricing.onUpdate((data) => {
     sidebar.pushPricing(data);
     updateStatusBar(data);
+
+    // Check price alerts
+    checkPriceAlerts(data);
 
     if (context.globalState.get('overlaySettings')?.notifications !== false) {
       const prev = context.globalState.get('lastBestModelId');

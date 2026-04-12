@@ -5,7 +5,7 @@ import { PeakIndicator } from './PeakIndicator.jsx';
 import { Settings } from './Settings.jsx';
 import { sortedModels, getBestModel, formatLastUpdated } from '../utils/recommendation.js';
 
-export function Overlay({ pricing, settings, onSaveSettings }) {
+export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [status, setStatus] = useState(null);
@@ -51,6 +51,13 @@ export function Overlay({ pricing, settings, onSaveSettings }) {
           <span className="text-[10px] opacity-30 text-[var(--vscode-foreground)]">
             {pricing?.source === 'litellm' ? '⬡' : '○'}
           </span>
+          <button
+            onClick={onOpenCharts}
+            className="text-[var(--vscode-foreground)] opacity-30 hover:opacity-70 transition-opacity text-sm leading-none"
+            title="View Price History Charts"
+          >
+            📊
+          </button>
           <button
             onClick={() => setShowSettings((v) => !v)}
             className="text-[var(--vscode-foreground)] opacity-30 hover:opacity-70 transition-opacity text-sm leading-none"

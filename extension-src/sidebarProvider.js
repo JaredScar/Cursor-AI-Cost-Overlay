@@ -11,6 +11,8 @@ const DEFAULT_SETTINGS = {
   peakHours: { enabled: false, start: '09:00', end: '18:00', days: [1, 2, 3, 4, 5] },
   notifications: true,
   refreshIntervalHours: 6,
+  priceAlerts: [], // Array of { modelId, threshold, direction: 'below'|'above', enabled }
+  alertHistory: {}, // Track which alerts were triggered { [modelId_threshold]: timestamp }
 };
 
 // Create output channel for logging
@@ -83,6 +85,14 @@ class SidebarProvider {
 
           case 'select-model':
             await this._selectCursorModel(payload?.modelId, payload?.modelName);
+            break;
+
+          case 'get-price-history':
+            const historyData = this._pricing.getPriceHistory(
+              payload?.modelIds,
+              payload?.days || 30
+            );
+            this._reply(id, historyData);
             break;
         }
       }, undefined, this._context.subscriptions);

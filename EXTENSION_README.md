@@ -8,8 +8,10 @@ Real-time AI model pricing directly in your Cursor editor. Compare costs, find t
 
 - **Real-time Pricing**: Fetches live model pricing from LiteLLM's comprehensive registry
 - **Smart Recommendations**: Highlights best-value models based on price and context window
+- **Price Alerts**: Get notified when your favorite models drop below your target price
+- **Historical Charts**: Track price trends over time with interactive line charts
 - **Cursor Integration**: Seamlessly switch models by opening the model picker and copying the model name
-- **Customizable Settings**: Configure refresh intervals and display preferences
+- **Customizable Settings**: Configure refresh intervals, peak hours, and alert preferences
 - **Offline Support**: Cached pricing data works even without internet
 
 ## Installation
@@ -37,8 +39,9 @@ Then paste the model name in the picker to select it.
 Access settings via the gear icon in the panel:
 
 - **Refresh Interval**: How often to fetch new pricing data (12h, 24h, 48h, or 72h)
-- **Auto-refresh**: Automatically update pricing on startup
-- **Best Value Days**: Number of days to consider for value calculations
+- **Notifications**: Alert when best-value model changes
+- **Peak Hours**: Highlight costs during your working hours
+- **Price Alerts**: Set custom alerts for specific models (e.g., "Notify me when GPT-4 drops below $2/M tokens")
 
 ## Commands
 

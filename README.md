@@ -200,9 +200,9 @@ Contributions are welcome! Here's how to help:
 
 ## Roadmap
 
-- [ ] Historical pricing charts
+- [x] **Custom model price alerts** — Get notified when model prices drop below or rise above your thresholds
+- [x] **Historical pricing charts** — Track price trends over time with interactive charts
 - [ ] Usage cost tracking (if API becomes available)
-- [ ] Custom model price alerts
 - [ ] Team/organization pricing plans
 - [ ] Integration with other AI coding tools
 

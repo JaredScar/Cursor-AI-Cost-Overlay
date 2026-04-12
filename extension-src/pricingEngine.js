@@ -4,6 +4,8 @@ const https = require('https');
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const CACHE_KEY = 'pricingCache';
+const HISTORY_KEY = 'pricingHistory';
+const MAX_HISTORY_DAYS = 30; // Keep last 30 days of price history
 
 // ── Canonical Cursor model list ────────────────────────────────────────────────
 // Prices sourced from https://cursor.com/docs/models-and-pricing (per 1M tokens).
@@ -124,9 +126,88 @@ class PricingEngine {
     const data = fetched || (cached ? { ...cached, stale: true } : fallback());
 
     await this._state.update(CACHE_KEY, data);
+    await this._savePriceHistory(data);
     this._onUpdate?.(data);
     this._scheduleNext();
     return data;
+  }
+
+  /** Save a price snapshot to history. Keeps only last 30 days. */
+  async _savePriceHistory(data) {
+    if (!data?.models?.length) return;
+    
+    const history = this._state.get(HISTORY_KEY) || {};
+    const timestamp = Date.now();
+    const dateKey = new Date(timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Create snapshot of current prices
+    const snapshot = {};
+    for (const model of data.models) {
+      snapshot[model.id] = {
+        input: model.inputPer1M,
+        output: model.outputPer1M,
+        timestamp,
+      };
+    }
+    
+    // Add to history (multiple snapshots per day allowed)
+    if (!history[dateKey]) history[dateKey] = [];
+    history[dateKey].push(snapshot);
+    
+    // Keep only last 30 days
+    const cutoff = Date.now() - (MAX_HISTORY_DAYS * 24 * 60 * 60 * 1000);
+    for (const key of Object.keys(history)) {
+      const keyDate = new Date(key).getTime();
+      if (keyDate < cutoff) delete history[key];
+    }
+    
+    await this._state.update(HISTORY_KEY, history);
+  }
+
+  /** Get price history for charting. Returns formatted data for Chart.js */
+  getPriceHistory(modelIds = null, days = 30) {
+    const history = this._state.get(HISTORY_KEY) || {};
+    const dates = Object.keys(history).sort();
+    
+    // Filter to last N days
+    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const filteredDates = dates.filter(d => new Date(d).getTime() >= cutoff);
+    
+    if (!filteredDates.length) return null;
+    
+    // Get all model IDs if not specified
+    const firstDay = history[filteredDates[0]];
+    const allModelIds = modelIds || (firstDay?.[0] ? Object.keys(firstDay[0]) : []);
+    
+    // Build chart data
+    const chartData = {
+      labels: filteredDates,
+      datasets: allModelIds.map((modelId, index) => {
+        const model = CURSOR_MODELS.find(m => m.id === modelId);
+        const modelName = model?.name || modelId;
+        
+        // Generate a color based on index
+        const hue = (index * 137) % 360;
+        const color = `hsl(${hue}, 70%, 50%)`;
+        
+        return {
+          label: modelName,
+          data: filteredDates.map(date => {
+            const daySnapshots = history[date];
+            if (!daySnapshots?.length) return null;
+            // Use the latest snapshot of the day
+            const latest = daySnapshots[daySnapshots.length - 1];
+            return latest[modelId]?.input || null;
+          }),
+          borderColor: color,
+          backgroundColor: color.replace('50%)', '20%)'),
+          tension: 0.3,
+          fill: false,
+        };
+      }).filter(d => d.data.some(v => v !== null)), // Only include models with data
+    };
+    
+    return chartData;
   }
 
   _scheduleNext() {

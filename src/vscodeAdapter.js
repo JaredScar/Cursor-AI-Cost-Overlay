@@ -125,6 +125,27 @@ window.electronAPI = {
   openExternal: (url) => _post({ type: 'open-external', payload: url }),
 
   selectModel: (modelId, modelName) => _post({ type: 'select-model', payload: { modelId, modelName } }),
+
+  // ── Price History ─────────────────────────────────────────────────────────
+  getPriceHistory: ({ modelIds, days } = {}) => {
+    return new Promise((resolve) => {
+      const id = Math.random().toString(36).slice(2);
+      const handler = (event) => {
+        const msg = event.data;
+        if (msg?.type === 'response' && msg?.id === id) {
+          window.removeEventListener('message', handler);
+          resolve(msg.payload);
+        }
+      };
+      window.addEventListener('message', handler);
+      _post({ type: 'get-price-history', id, payload: { modelIds, days } });
+      // Safety timeout
+      setTimeout(() => {
+        window.removeEventListener('message', handler);
+        resolve(null);
+      }, 10000);
+    });
+  },
 };
 
 // Signal to the extension host that the webview is ready.

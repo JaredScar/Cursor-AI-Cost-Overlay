@@ -3,6 +3,17 @@ import { useState } from 'react';
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const REFRESH_OPTIONS = [1, 3, 6, 12, 24];
 
+// Available models for alerts
+const ALERT_MODELS = [
+  { id: 'claude-sonnet-4-6', name: 'Claude 4.6 Sonnet' },
+  { id: 'claude-opus-4-6', name: 'Claude 4.6 Opus' },
+  { id: 'gpt-5.4', name: 'GPT-5.4' },
+  { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano' },
+  { id: 'gemini-3-flash', name: 'Gemini 3 Flash' },
+  { id: 'composer-2', name: 'Composer 2' },
+  { id: 'grok-4.20', name: 'Grok 4.20' },
+];
+
 export function Settings({ settings, onSave, onClose }) {
   const [notifications, setNotifications] = useState(settings?.notifications ?? true);
   const [refreshHours, setRefreshHours]   = useState(settings?.refreshIntervalHours ?? 6);
@@ -12,8 +23,30 @@ export function Settings({ settings, onSave, onClose }) {
   const [peakEnd, setPeakEnd]         = useState(settings?.peakHours?.end ?? '18:00');
   const [peakDays, setPeakDays]       = useState(settings?.peakHours?.days ?? [1, 2, 3, 4, 5]);
 
+  // Price alerts state
+  const [priceAlerts, setPriceAlerts] = useState(settings?.priceAlerts || []);
+
   function toggleDay(d) {
     setPeakDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+  }
+
+  function addAlert() {
+    const newAlert = {
+      id: Date.now().toString(),
+      modelId: ALERT_MODELS[0].id,
+      threshold: 1.00,
+      direction: 'below',
+      enabled: true,
+    };
+    setPriceAlerts([...priceAlerts, newAlert]);
+  }
+
+  function updateAlert(id, updates) {
+    setPriceAlerts(priceAlerts.map(a => a.id === id ? { ...a, ...updates } : a));
+  }
+
+  function removeAlert(id) {
+    setPriceAlerts(priceAlerts.filter(a => a.id !== id));
   }
 
   function handleSave() {
@@ -21,6 +54,7 @@ export function Settings({ settings, onSave, onClose }) {
       notifications,
       refreshIntervalHours: refreshHours,
       peakHours: { enabled: peakEnabled, start: peakStart, end: peakEnd, days: peakDays },
+      priceAlerts,
     });
     onClose();
   }
@@ -119,6 +153,78 @@ export function Settings({ settings, onSave, onClose }) {
               >
                 {h}h
               </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Price Alerts */}
+        <div className="border-t border-[var(--vscode-panel-border)] pt-3 mt-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="text-[11px] font-medium text-[var(--vscode-foreground)]">Price Alerts</div>
+              <div className="text-[10px] text-[var(--vscode-descriptionForeground)]">Get notified when prices change</div>
+            </div>
+            <button
+              onClick={addAlert}
+              className="px-2 py-1 text-[10px] rounded bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)] transition-colors"
+            >
+              + Add
+            </button>
+          </div>
+
+          {priceAlerts.length === 0 && (
+            <div className="text-[10px] text-[var(--vscode-descriptionForeground)] italic py-2">
+              No alerts configured. Click "+ Add" to create one.
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {priceAlerts.map((alert) => (
+              <div key={alert.id} className="p-2 rounded bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Toggle
+                    value={alert.enabled}
+                    onChange={(v) => updateAlert(alert.id, { enabled: v })}
+                  />
+                  <select
+                    value={alert.modelId}
+                    onChange={(e) => updateAlert(alert.id, { modelId: e.target.value })}
+                    className="flex-1 text-[10px] py-1 px-1.5 rounded bg-[var(--vscode-dropdown-background)] text-[var(--vscode-dropdown-foreground)] border border-[var(--vscode-dropdown-border)]"
+                  >
+                    {ALERT_MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => removeAlert(alert.id)}
+                    className="w-5 h-5 flex items-center justify-center rounded text-[var(--vscode-foreground)] opacity-40 hover:opacity-90 hover:bg-[var(--vscode-toolbar-hoverBackground)] transition-all text-xs"
+                    aria-label="Remove alert"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">Notify when price is</span>
+                  <select
+                    value={alert.direction}
+                    onChange={(e) => updateAlert(alert.id, { direction: e.target.value })}
+                    className="text-[10px] py-1 px-1.5 rounded bg-[var(--vscode-dropdown-background)] text-[var(--vscode-dropdown-foreground)] border border-[var(--vscode-dropdown-border)]"
+                  >
+                    <option value="below">below</option>
+                    <option value="above">above</option>
+                  </select>
+                  <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={alert.threshold}
+                    onChange={(e) => updateAlert(alert.id, { threshold: parseFloat(e.target.value) || 0 })}
+                    className="w-16 text-[10px] py-1 px-1.5 rounded bg-[var(--vscode-input-background)] text-[var(--vscode-input-foreground)] border border-[var(--vscode-input-border)]"
+                  />
+                  <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">/M tokens</span>
+                </div>
+              </div>
             ))}
           </div>
         </div>

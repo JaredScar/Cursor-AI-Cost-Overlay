@@ -248,12 +248,12 @@ export function Settings({ settings, onSave, onClose }) {
 
 function Row({ label, hint, children }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
+    <div className="flex items-center justify-between gap-2 pr-1">
+      <div className="min-w-0 flex-1">
         <div className="text-[11px] font-medium text-[var(--vscode-foreground)]">{label}</div>
         {hint && <div className="text-[10px] text-[var(--vscode-descriptionForeground)] leading-tight mt-0.5">{hint}</div>}
       </div>
-      <div className="flex-shrink-0">{children}</div>
+      <div className="flex-shrink-0 pl-1">{children}</div>
     </div>
   );
 }
@@ -271,15 +271,16 @@ function Toggle({ value, onChange }) {
       aria-checked={value}
       onClick={() => onChange((v) => !v)}
       className={[
-        'relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 focus:outline-none',
+        'relative inline-flex items-center flex-shrink-0 w-8 h-[18px] rounded-full overflow-hidden',
+        'transition-colors focus:outline-none focus-visible:ring-2',
         value ? 'bg-[var(--vscode-button-background)]' : 'bg-[var(--vscode-input-background)]',
       ].join(' ')}
-      style={{ border: '1px solid var(--vscode-panel-border)' }}
+      style={{ border: '1px solid var(--vscode-panel-border)', minWidth: '2rem' }}
     >
       <span
         className={[
-          'absolute top-[2px] w-[13px] h-[13px] bg-white rounded-full shadow-sm transition-transform',
-          value ? 'translate-x-[15px]' : 'translate-x-[2px]',
+          'absolute top-[2px] w-[13px] h-[13px] rounded-full shadow-sm transition-transform duration-150',
+          value ? 'bg-white translate-x-[15px]' : 'bg-[var(--vscode-descriptionForeground)] translate-x-[2px]',
         ].join(' ')}
       />
     </button>

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Overlay } from './components/Overlay.jsx';
+import { Charts } from './components/Charts.jsx';
 import { usePricing } from './hooks/usePricing.js';
 
 export default function App() {
   const [settings, setSettings] = useState(null);
+  const [view, setView] = useState('overlay'); // 'overlay' | 'charts'
   const { pricing } = usePricing();
 
   useEffect(() => {
@@ -28,11 +30,16 @@ export default function App() {
     );
   }
 
+  if (view === 'charts') {
+    return <Charts onClose={() => setView('overlay')} />;
+  }
+
   return (
     <Overlay
       pricing={pricing}
       settings={settings}
       onSaveSettings={handleSaveSettings}
+      onOpenCharts={() => setView('charts')}
     />
   );
 }

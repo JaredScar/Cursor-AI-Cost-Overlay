@@ -115,10 +115,22 @@ class PricingEngine {
     this._onUpdate = cb;
   }
 
+  /**
+   * Seed history from whatever data is available right now.
+   * Called once on startup so the chart has at least today's prices immediately.
+   */
+  async seedHistory() {
+    const data = this.getCached();
+    await this._savePriceHistory(data);
+  }
+
   /** Refreshes pricing: uses cache if still fresh, otherwise fetches. */
   async refresh(force = false) {
     const cached = this._state.get(CACHE_KEY);
     if (!force && cached && Date.now() - cached.lastUpdated < CACHE_TTL_MS) {
+      // Still save a history snapshot even when serving from cache,
+      // so the chart accumulates data points over multiple sessions.
+      await this._savePriceHistory(cached);
       return cached;
     }
 
@@ -132,82 +144,73 @@ class PricingEngine {
     return data;
   }
 
-  /** Save a price snapshot to history. Keeps only last 30 days. */
+  /** Save a price snapshot to history. One snapshot per day max. */
   async _savePriceHistory(data) {
     if (!data?.models?.length) return;
-    
+
     const history = this._state.get(HISTORY_KEY) || {};
-    const timestamp = Date.now();
-    const dateKey = new Date(timestamp).toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    // Create snapshot of current prices
+    const dateKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Only write once per day — prevents bloat from many cache-hit calls
+    if (history[dateKey]) return;
+
     const snapshot = {};
     for (const model of data.models) {
       snapshot[model.id] = {
         input: model.inputPer1M,
         output: model.outputPer1M,
-        timestamp,
       };
     }
-    
-    // Add to history (multiple snapshots per day allowed)
-    if (!history[dateKey]) history[dateKey] = [];
-    history[dateKey].push(snapshot);
-    
-    // Keep only last 30 days
+
+    history[dateKey] = snapshot;
+
+    // Prune entries older than MAX_HISTORY_DAYS
     const cutoff = Date.now() - (MAX_HISTORY_DAYS * 24 * 60 * 60 * 1000);
     for (const key of Object.keys(history)) {
-      const keyDate = new Date(key).getTime();
-      if (keyDate < cutoff) delete history[key];
+      if (new Date(key).getTime() < cutoff) delete history[key];
     }
-    
+
     await this._state.update(HISTORY_KEY, history);
   }
 
-  /** Get price history for charting. Returns formatted data for Chart.js */
+  /** Get price history for charting. Returns serialisable data for Chart.js */
   getPriceHistory(modelIds = null, days = 30) {
     const history = this._state.get(HISTORY_KEY) || {};
-    const dates = Object.keys(history).sort();
-    
+    const allDates = Object.keys(history).sort();
+
     // Filter to last N days
     const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
-    const filteredDates = dates.filter(d => new Date(d).getTime() >= cutoff);
-    
+    const filteredDates = allDates.filter(d => new Date(d).getTime() >= cutoff);
+
     if (!filteredDates.length) return null;
-    
-    // Get all model IDs if not specified
-    const firstDay = history[filteredDates[0]];
-    const allModelIds = modelIds || (firstDay?.[0] ? Object.keys(firstDay[0]) : []);
-    
-    // Build chart data
-    const chartData = {
-      labels: filteredDates,
-      datasets: allModelIds.map((modelId, index) => {
-        const model = CURSOR_MODELS.find(m => m.id === modelId);
-        const modelName = model?.name || modelId;
-        
-        // Generate a color based on index
-        const hue = (index * 137) % 360;
-        const color = `hsl(${hue}, 70%, 50%)`;
-        
-        return {
-          label: modelName,
-          data: filteredDates.map(date => {
-            const daySnapshots = history[date];
-            if (!daySnapshots?.length) return null;
-            // Use the latest snapshot of the day
-            const latest = daySnapshots[daySnapshots.length - 1];
-            return latest[modelId]?.input || null;
-          }),
-          borderColor: color,
-          backgroundColor: color.replace('50%)', '20%)'),
-          tension: 0.3,
-          fill: false,
-        };
-      }).filter(d => d.data.some(v => v !== null)), // Only include models with data
-    };
-    
-    return chartData;
+
+    // Determine which model IDs to include
+    const firstSnapshot = history[filteredDates[0]] || {};
+    const resolvedIds = modelIds?.length ? modelIds : Object.keys(firstSnapshot);
+
+    // Fixed palette — hex values work in canvas contexts
+    const PALETTE = [
+      '#4e9af1', '#f1c94e', '#4ef18a', '#f14e4e', '#b44ef1',
+      '#f1874e', '#4ef1e8', '#f14eb0', '#8af14e', '#f1f14e',
+    ];
+
+    const datasets = resolvedIds.map((modelId, index) => {
+      const model = CURSOR_MODELS.find(m => m.id === modelId);
+      const color = PALETTE[index % PALETTE.length];
+
+      return {
+        label: model?.name || modelId,
+        data: filteredDates.map(date => history[date]?.[modelId]?.input ?? null),
+        borderColor: color,
+        backgroundColor: color + '33', // 20% alpha
+        tension: 0.3,
+        fill: false,
+        spanGaps: true,
+        pointRadius: 3,
+      };
+    }).filter(d => d.data.some(v => v !== null));
+
+    return { labels: filteredDates, datasets };
   }
 
   _scheduleNext() {

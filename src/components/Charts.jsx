@@ -65,8 +65,8 @@ export function Charts({ onClose }) {
       type: 'line',
       data: chartData,
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: false,
+        animation: false,
         interaction: {
           mode: 'index',
           intersect: false,
@@ -75,60 +75,51 @@ export function Charts({ onClose }) {
           legend: {
             position: 'bottom',
             labels: {
-              color: 'var(--vscode-foreground)',
+              color: '#cccccc',
               font: { size: 10 },
               boxWidth: 12,
-              padding: 10,
+              padding: 8,
             },
           },
           title: {
             display: true,
-            text: `Input Price History (per 1M tokens)`,
-            color: 'var(--vscode-foreground)',
-            font: { size: 12, weight: 'normal' },
+            text: 'Input Price ($/1M tokens)',
+            color: '#cccccc',
+            font: { size: 11, weight: 'normal' },
           },
           tooltip: {
-            backgroundColor: 'var(--vscode-editor-background)',
-            titleColor: 'var(--vscode-foreground)',
-            bodyColor: 'var(--vscode-foreground)',
-            borderColor: 'var(--vscode-panel-border)',
+            backgroundColor: '#1e1e1e',
+            titleColor: '#cccccc',
+            bodyColor: '#cccccc',
+            borderColor: '#444',
             borderWidth: 1,
             callbacks: {
               label: (context) => {
-                return `${context.dataset.label}: $${context.parsed.y?.toFixed(2) || 'N/A'}/M`;
+                const y = context.parsed.y;
+                return `${context.dataset.label}: $${y != null ? y.toFixed(2) : 'N/A'}/M`;
               },
             },
           },
         },
         scales: {
           x: {
-            grid: {
-              color: 'var(--vscode-panel-border)',
-              drawBorder: false,
-            },
+            grid: { color: '#333' },
+            border: { display: false },
             ticks: {
-              color: 'var(--vscode-descriptionForeground)',
+              color: '#999',
               font: { size: 9 },
-              maxRotation: 45,
-              minRotation: 45,
+              maxRotation: 40,
+              minRotation: 40,
             },
           },
           y: {
-            beginAtZero: true,
-            grid: {
-              color: 'var(--vscode-panel-border)',
-              drawBorder: false,
-            },
+            beginAtZero: false,
+            grid: { color: '#333' },
+            border: { display: false },
             ticks: {
-              color: 'var(--vscode-descriptionForeground)',
+              color: '#999',
               font: { size: 9 },
               callback: (value) => `$${value}`,
-            },
-            title: {
-              display: true,
-              text: 'Price ($/M tokens)',
-              color: 'var(--vscode-descriptionForeground)',
-              font: { size: 10 },
             },
           },
         },
@@ -220,25 +211,23 @@ export function Charts({ onClose }) {
       </div>
 
       {/* Chart area */}
-      <div className="flex-1 p-3 relative min-h-0">
+      <div className="flex-1 px-3 pt-2 pb-1 relative" style={{ minHeight: 0 }}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">Loading...</div>
           </div>
         )}
-        
-        {error && (
+
+        {!loading && error && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="text-[11px] text-[var(--vscode-descriptionForeground)] text-center">
+            <div className="text-[11px] text-[var(--vscode-descriptionForeground)] text-center leading-relaxed">
               {error}
             </div>
           </div>
         )}
-        
+
         {!loading && !error && chartData?.datasets?.length > 0 && (
-          <div className="h-full w-full">
-            <canvas ref={canvasRef} />
-          </div>
+          <canvas ref={canvasRef} style={{ width: '100%', height: '220px' }} />
         )}
       </div>
 

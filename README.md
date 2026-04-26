@@ -212,7 +212,7 @@ Contributions are welcome! Here's how to help:
 A: Cursor doesn't expose a public API for programmatic model switching. The extension opens the model picker and copies the model name to make manual selection as easy as possible.
 
 **Q: Where does the pricing data come from?**  
-A: Primary source is the [LiteLLM model registry](https://github.com/BerriAI/litellm), supplemented with Cursor's official pricing for proprietary models.
+A: Primary source is Cursor's official [Models & Pricing](https://cursor.com/docs/models-and-pricing) page, with the [LiteLLM model registry](https://github.com/BerriAI/litellm) used as a fallback if Cursor's docs are unavailable.
 
 **Q: Does this work with VS Code too?**  
 A: Yes! While designed for Cursor, the extension works in standard VS Code as well.

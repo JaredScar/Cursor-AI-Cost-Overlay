@@ -29,6 +29,11 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
 
   const models = sortedModels(pricing?.models, settings?.visibleModels);
   const best = getBestModel(pricing?.models, settings?.visibleModels);
+  const sourceLabel = pricing?.source === 'cursor-docs-live'
+    ? 'Cursor docs'
+    : pricing?.source === 'litellm'
+    ? 'LiteLLM fallback'
+    : 'fallback';
 
   return (
     <div className="panel-root">
@@ -48,7 +53,10 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
               stale
             </span>
           )}
-          <span className="text-[10px] opacity-30 text-[var(--vscode-foreground)]">
+          <span
+            className="text-[10px] opacity-30 text-[var(--vscode-foreground)]"
+            title={`Pricing source: ${sourceLabel}`}
+          >
             {pricing?.source === 'litellm' ? '⬡' : '○'}
           </span>
           <button
@@ -71,6 +79,7 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
       {showSettings ? (
         <Settings
           settings={settings}
+          models={pricing?.models || []}
           onSave={onSaveSettings}
           onClose={() => setShowSettings(false)}
         />
@@ -86,7 +95,7 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
           <div className="px-3 pb-1">
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-semibold tracking-widest opacity-30 text-[var(--vscode-foreground)] uppercase">
-                All Models
+                All Models ({models.length}) · 70/30 Blend
               </span>
               <div className="flex-1 h-px bg-[var(--vscode-panel-border)]" />
             </div>
@@ -114,7 +123,7 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
           {/* Footer */}
           <div className="flex items-center justify-between px-3 py-2 border-t border-[var(--vscode-panel-border)]">
             <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">
-              Updated {formatLastUpdated(pricing?.lastUpdated)}
+              {sourceLabel} · {models.length} models · updated {formatLastUpdated(pricing?.lastUpdated)}
             </span>
             <button
               onClick={() => window.electronAPI.refreshPricing()}

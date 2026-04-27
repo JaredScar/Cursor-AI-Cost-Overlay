@@ -3,18 +3,18 @@ import { useState } from 'react';
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const REFRESH_OPTIONS = [1, 3, 6, 12, 24];
 
-// Available models for alerts
-const ALERT_MODELS = [
+// Fallback alert models used before live pricing arrives.
+const FALLBACK_ALERT_MODELS = [
   { id: 'claude-sonnet-4-6', name: 'Claude 4.6 Sonnet' },
-  { id: 'claude-opus-4-6', name: 'Claude 4.6 Opus' },
-  { id: 'gpt-5.4', name: 'GPT-5.4' },
-  { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano' },
-  { id: 'gemini-3-flash', name: 'Gemini 3 Flash' },
+  { id: 'claude-opus-4-7', name: 'Claude 4.7 Opus' },
+  { id: 'gpt-5.5', name: 'GPT-5.5' },
+  { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex' },
+  { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro' },
   { id: 'composer-2', name: 'Composer 2' },
   { id: 'grok-4.20', name: 'Grok 4.20' },
 ];
 
-export function Settings({ settings, onSave, onClose }) {
+export function Settings({ settings, models = [], onSave, onClose }) {
   const [notifications, setNotifications] = useState(settings?.notifications ?? true);
   const [refreshHours, setRefreshHours]   = useState(settings?.refreshIntervalHours ?? 6);
 
@@ -25,6 +25,9 @@ export function Settings({ settings, onSave, onClose }) {
 
   // Price alerts state
   const [priceAlerts, setPriceAlerts] = useState(settings?.priceAlerts || []);
+  const alertModels = models.length
+    ? models.map((model) => ({ id: model.id, name: model.name }))
+    : FALLBACK_ALERT_MODELS;
 
   function toggleDay(d) {
     setPeakDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
@@ -33,7 +36,7 @@ export function Settings({ settings, onSave, onClose }) {
   function addAlert() {
     const newAlert = {
       id: Date.now().toString(),
-      modelId: ALERT_MODELS[0].id,
+      modelId: alertModels[0].id,
       threshold: 1.00,
       direction: 'below',
       enabled: true,
@@ -191,7 +194,7 @@ export function Settings({ settings, onSave, onClose }) {
                     onChange={(e) => updateAlert(alert.id, { modelId: e.target.value })}
                     className="flex-1 text-[10px] py-1 px-1.5 rounded bg-[var(--vscode-dropdown-background)] text-[var(--vscode-dropdown-foreground)] border border-[var(--vscode-dropdown-border)]"
                   >
-                    {ALERT_MODELS.map((m) => (
+                    {alertModels.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </select>

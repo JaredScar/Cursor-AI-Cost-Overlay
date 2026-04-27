@@ -6,6 +6,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const CACHE_KEY = 'pricingCache';
 const HISTORY_KEY = 'pricingHistory';
 const MAX_HISTORY_DAYS = 30; // Keep last 30 days of price history
+const PRICING_SCHEMA_VERSION = 2;
 const CURSOR_PRICING_URL = 'https://cursor.com/docs/models-and-pricing';
 const LITELLM_PRICING_URL = 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
 
@@ -53,7 +54,12 @@ const LITELLM_TO_CURSOR_ID = {
 };
 
 function fallback() {
-  return { models: CURSOR_MODELS.map(m => ({ ...m })), source: 'cursor-docs', lastUpdated: Date.now() };
+  return {
+    schemaVersion: PRICING_SCHEMA_VERSION,
+    models: CURSOR_MODELS.map(m => ({ ...m })),
+    source: 'cursor-docs',
+    lastUpdated: Date.now(),
+  };
 }
 
 /**
@@ -153,11 +159,17 @@ function parseCursorDocsPricing(html) {
 
 function extractModelsTableChunkUrls(html) {
   const normalized = String(html || '').replace(/\\"/g, '"').replace(/\\u0026/g, '&');
-  const manifest = normalized.match(/\d+:I\[\d+,\[(.*?)\],"ModelsTable"\]/s);
-  if (!manifest) return [];
+  const manifests = [...normalized.matchAll(/\d+:I\[\d+,\[((?:"[^"]+?",?)+)\],"ModelsTable"\]/g)];
+  if (!manifests.length) return [];
 
-  return [...manifest[1].matchAll(/"([^"]+?\.js\?dpl=[^"]+?)"/g)]
-    .map(match => new URL(match[1], CURSOR_PRICING_URL).toString());
+  const urls = new Set();
+  for (const manifest of manifests) {
+    for (const match of manifest[1].matchAll(/"([^"]+?\.js\?dpl=[^"]+?)"/g)) {
+      urls.add(new URL(match[1], CURSOR_PRICING_URL).toString());
+    }
+  }
+
+  return [...urls];
 }
 
 function parseChunkNumber(block, key) {
@@ -178,10 +190,6 @@ function parseCursorModelsChunk(js) {
 
   for (const match of js.matchAll(modelRegex)) {
     const [, id, slug, block] = match;
-    const hiddenMatch = block.match(/hidden:!(\d)/);
-    const hidden = hiddenMatch ? hiddenMatch[1] === '0' : false;
-    if (hidden) continue;
-
     const name = parseChunkString(block, 'name');
     const provider = parseChunkString(block, 'provider');
     const input = parseChunkNumber(block, 'uncachedInput') ?? parseChunkNumber(block, 'tokenInput');
@@ -252,7 +260,12 @@ async function fetchFromCursorDocs() {
   }
 
   if (!models.length) return null;
-  return { models: models.map(({ slug, ...model }) => model), source: 'cursor-docs-live', lastUpdated: Date.now() };
+  return {
+    schemaVersion: PRICING_SCHEMA_VERSION,
+    models: models.map(({ slug, ...model }) => model),
+    source: 'cursor-docs-live',
+    lastUpdated: Date.now(),
+  };
 }
 
 async function fetchFromLiteLLM() {
@@ -261,7 +274,7 @@ async function fetchFromLiteLLM() {
 
   try {
     const models = mergeLiteLLM(JSON.parse(body));
-    return { models, source: 'litellm', lastUpdated: Date.now() };
+    return { schemaVersion: PRICING_SCHEMA_VERSION, models, source: 'litellm', lastUpdated: Date.now() };
   } catch {
     return null;
   }
@@ -313,6 +326,7 @@ async function saveLatestHistorySnapshot(state, data) {
 
 function isFreshCache(cached) {
   if (!cached?.lastUpdated) return false;
+  if (cached.schemaVersion !== PRICING_SCHEMA_VERSION) return false;
 
   // Pre-fix caches could have a fresh timestamp but still contain stale
   // hardcoded prices. Refresh once per day so installed users migrate quickly.
@@ -323,6 +337,7 @@ function isFreshCache(cached) {
 
 function shouldNotifyUpdate(cached, data) {
   if (!cached) return true;
+  if (cached.schemaVersion !== data.schemaVersion) return true;
   if (cached.source !== data.source) return true;
   if (cached.models?.length !== data.models?.length) return true;
 
@@ -374,7 +389,8 @@ class PricingEngine {
     }
 
     const fetched = await fetchLivePricing();
-    const data = fetched || (cached ? { ...cached, stale: true } : fallback());
+    const canReuseCached = cached?.schemaVersion === PRICING_SCHEMA_VERSION;
+    const data = fetched || (canReuseCached ? { ...cached, stale: true } : fallback());
 
     await this._state.update(CACHE_KEY, data);
     await this._savePriceHistory(data);
@@ -418,7 +434,8 @@ class PricingEngine {
     ];
 
     const datasets = resolvedIds.map((modelId, index) => {
-      const model = CURSOR_MODELS.find(m => m.id === modelId);
+      const knownModels = this.getCached()?.models || CURSOR_MODELS;
+      const model = knownModels.find(m => m.id === modelId);
       const color = PALETTE[index % PALETTE.length];
 
       return {

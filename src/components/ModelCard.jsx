@@ -1,4 +1,4 @@
-import { effectiveCost, modelTier, formatEffectiveCost } from '../utils/recommendation.js';
+import { effectiveCost, modelTier, formatEffectiveCost, formatPrice } from '../utils/recommendation.js';
 
 const TIER_STYLES = {
   green:  { dot: 'bg-green-400',  text: 'text-green-400',  bar: 'bg-green-500/60'  },
@@ -24,7 +24,7 @@ export function ModelCard({ model, allModels, isBest, isSelected, onSelect }) {
     <div
       role="button"
       tabIndex={0}
-      title={`Use ${model.name} in Cursor`}
+      title={`Use ${model.name} in Cursor. Effective 70/30 blend: ${formatEffectiveCost(model)}. Input: ${formatPrice(model.inputPer1M)}. Output: ${formatPrice(model.outputPer1M)}.`}
       onClick={() => onSelect?.(model)}
       onKeyDown={(e) => e.key === 'Enter' && onSelect?.(model)}
       className={[
@@ -66,9 +66,12 @@ export function ModelCard({ model, allModels, isBest, isSelected, onSelect }) {
 
       {/* Price + bar */}
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <span className={`text-[11px] font-mono font-semibold ${styles.text}`}>
-          {formatEffectiveCost(model)}
-        </span>
+        <div className="flex items-baseline gap-1">
+          <span className={`text-[11px] font-mono font-semibold ${styles.text}`}>
+            {formatEffectiveCost(model)}
+          </span>
+          <span className="text-[8px] text-[var(--vscode-descriptionForeground)]">blend</span>
+        </div>
         <div className="w-16 h-1 bg-[var(--vscode-panel-border)] rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full ${styles.bar} transition-all duration-500`}

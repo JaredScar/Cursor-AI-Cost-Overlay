@@ -1,4 +1,5 @@
 export const FALLBACK_PRICING = {
+  schemaVersion: 2,
   models: [
     {
       id: 'claude-sonnet-4-6',

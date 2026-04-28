@@ -423,9 +423,11 @@ class PricingEngine {
 
     if (!filteredDates.length) return null;
 
-    // Determine which model IDs to include
-    const firstSnapshot = history[filteredDates[0]] || {};
-    const resolvedIds = modelIds?.length ? modelIds : Object.keys(firstSnapshot);
+    // Determine which model IDs to include.
+    // Use the most recent snapshot as the source of truth so newly-added
+    // models appear in charts even if older snapshots didn't have them.
+    const latestSnapshot = history[filteredDates[filteredDates.length - 1]] || {};
+    const resolvedIds = modelIds?.length ? modelIds : Object.keys(latestSnapshot);
 
     // Fixed palette — hex values work in canvas contexts
     const PALETTE = [

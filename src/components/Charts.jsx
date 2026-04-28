@@ -1,27 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 
-// Available models for selection
-const CHART_MODELS = [
-  { id: 'claude-sonnet-4-6', name: 'Claude 4.6 Sonnet' },
-  { id: 'claude-opus-4-6', name: 'Claude 4.6 Opus' },
-  { id: 'claude-sonnet-4-5', name: 'Claude 4.5 Sonnet' },
-  { id: 'gpt-5.4', name: 'GPT-5.4' },
-  { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
-  { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano' },
-  { id: 'gemini-3-pro', name: 'Gemini 3 Pro' },
-  { id: 'gemini-3-flash', name: 'Gemini 3 Flash' },
-  { id: 'composer-2', name: 'Composer 2' },
-  { id: 'grok-4.20', name: 'Grok 4.20' },
-];
-
 const DAYS_OPTIONS = [7, 14, 30];
 
-export function Charts({ onClose }) {
+// Sensible default IDs to pre-select when the live model list loads.
+const DEFAULT_SELECTED_IDS = ['composer-2', 'gpt-5.3-codex', 'gemini-3.1-pro'];
+
+export function Charts({ models = [], onClose }) {
+  const chartModels = models.length
+    ? models
+    : [
+        { id: 'composer-2',    name: 'Composer 2' },
+        { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex' },
+        { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro' },
+      ];
+
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
   const [chartData, setChartData] = useState(null);
-  const [selectedModels, setSelectedModels] = useState(['gpt-5.4-nano', 'composer-2', 'gemini-3-flash']);
+  const [selectedModels, setSelectedModels] = useState(() =>
+    DEFAULT_SELECTED_IDS.filter(id => chartModels.some(m => m.id === id))
+  );
   const [days, setDays] = useState(14);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -188,7 +187,7 @@ export function Charts({ onClose }) {
             Models (select up to 5)
           </div>
           <div className="flex flex-wrap gap-1">
-            {CHART_MODELS.map((model) => {
+            {chartModels.map((model) => {
               const isSelected = selectedModels.includes(model.id);
               return (
                 <button

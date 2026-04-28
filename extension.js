@@ -127,10 +127,9 @@ function activate(context) {
   // ── Initial load ────────────────────────────────────────────────────────────
   // Show cached/fallback data immediately in the status bar
   updateStatusBar(pricing.getCached());
-  // Seed history from current data so charts have at least today's prices on first open
-  pricing.seedHistory();
-  // Fetch fresh data in the background
-  pricing.refresh(false);
+  // Fetch fresh data (or serve from today's cache) then seed history so that
+  // history snapshots always contain the full model list from the live fetch.
+  pricing.refresh(false).then(() => pricing.seedHistory());
 }
 
 function deactivate() {}

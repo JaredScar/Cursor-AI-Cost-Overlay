@@ -31,7 +31,7 @@ export default function App() {
   }
 
   if (view === 'charts') {
-    return <Charts onClose={() => setView('overlay')} />;
+    return <Charts models={pricing?.models || []} onClose={() => setView('overlay')} />;
   }
 
   return (

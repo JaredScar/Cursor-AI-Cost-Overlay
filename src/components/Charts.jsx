@@ -4,14 +4,14 @@ import Chart from 'chart.js/auto';
 const DAYS_OPTIONS = [7, 14, 30];
 
 // Sensible default IDs to pre-select when the live model list loads.
-const DEFAULT_SELECTED_IDS = ['composer-2', 'gpt-5.3-codex', 'gemini-3.1-pro'];
+const DEFAULT_SELECTED_IDS = ['composer-2.5', 'gpt-5.4-nano', 'gemini-3.1-pro'];
 
 export function Charts({ models = [], onClose }) {
   const chartModels = models.length
     ? models
     : [
-        { id: 'composer-2',    name: 'Composer 2' },
-        { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex' },
+        { id: 'composer-2.5',  name: 'Composer 2.5' },
+        { id: 'gpt-5.4-nano',  name: 'GPT-5.4 Nano' },
         { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro' },
       ];
 

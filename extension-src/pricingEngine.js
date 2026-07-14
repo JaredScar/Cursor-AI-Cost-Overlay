@@ -6,7 +6,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const CACHE_KEY = 'pricingCache';
 const HISTORY_KEY = 'pricingHistory';
 const MAX_HISTORY_DAYS = 30; // Keep last 30 days of price history
-const PRICING_SCHEMA_VERSION = 2;
+const PRICING_SCHEMA_VERSION = 3;
 const CURSOR_PRICING_URL = 'https://cursor.com/docs/models-and-pricing';
 const LITELLM_PRICING_URL = 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
 
@@ -15,35 +15,77 @@ const LITELLM_PRICING_URL = 'https://raw.githubusercontent.com/BerriAI/litellm/m
 // docs page first and only fall back to this list if the network/doc parse fails.
 const CURSOR_MODELS = [
   // ── Anthropic ────────────────────────────────────────────────────────────────
-  { id: 'claude-sonnet-4-6',        name: 'Claude 4.6 Sonnet',  provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
-  { id: 'claude-opus-4-7',          name: 'Claude 4.7 Opus',    provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
-  // ── OpenAI ───────────────────────────────────────────────────────────────────
-  { id: 'gpt-5.3-codex',            name: 'GPT-5.3 Codex',      provider: 'OpenAI',    inputPer1M: 1.75,  outputPer1M: 14.00 },
-  { id: 'gpt-5.5',                  name: 'GPT-5.5',            provider: 'OpenAI',    inputPer1M: 5.00,  outputPer1M: 30.00 },
+  { id: 'claude-sonnet-5',            name: 'Claude Sonnet 5',           provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
+  { id: 'claude-4-sonnet',            name: 'Claude 4 Sonnet',           provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
+  { id: 'claude-sonnet-4-6',          name: 'Claude 4.6 Sonnet',         provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
+  { id: 'claude-4-5-sonnet',          name: 'Claude 4.5 Sonnet',         provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
+  { id: 'claude-opus-4-8',            name: 'Claude Opus 4.8',           provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
+  { id: 'claude-fable-5',             name: 'Claude Fable 5',            provider: 'Anthropic', inputPer1M: 10.00, outputPer1M: 50.00 },
+  { id: 'claude-opus-4-7',            name: 'Claude Opus 4.7',           provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
+  { id: 'claude-opus-4-7-fast',       name: 'Claude Opus 4.7 Fast',      provider: 'Anthropic', inputPer1M: 30.00, outputPer1M: 150.00 },
+  { id: 'claude-4-6-opus',            name: 'Claude 4.6 Opus',           provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
+  { id: 'claude-4-5-opus',            name: 'Claude 4.5 Opus',           provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
+  { id: 'claude-4-5-haiku',           name: 'Claude 4.5 Haiku',          provider: 'Anthropic', inputPer1M: 1.00,  outputPer1M: 5.00 },
+  { id: 'claude-4-sonnet-1m',         name: 'Claude 4 Sonnet 1M',        provider: 'Anthropic', inputPer1M: 6.00,  outputPer1M: 22.50 },
   // ── Google ───────────────────────────────────────────────────────────────────
-  { id: 'gemini-3.1-pro',           name: 'Gemini 3.1 Pro',     provider: 'Google',    inputPer1M: 2.00,  outputPer1M: 12.00 },
+  { id: 'gemini-3.1-pro',             name: 'Gemini 3.1 Pro',            provider: 'Google',    inputPer1M: 2.00,  outputPer1M: 12.00 },
+  { id: 'gemini-3-pro',               name: 'Gemini 3 Pro',              provider: 'Google',    inputPer1M: 2.00,  outputPer1M: 12.00 },
+  { id: 'gemini-3.5-flash',           name: 'Gemini 3.5 Flash',          provider: 'Google',    inputPer1M: 1.50,  outputPer1M: 9.00 },
+  { id: 'gemini-3-flash',             name: 'Gemini 3 Flash',            provider: 'Google',    inputPer1M: 0.50,  outputPer1M: 3.00 },
+  { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image Preview', provider: 'Google',   inputPer1M: 2.00,  outputPer1M: 12.00 },
+  { id: 'gemini-2.5-flash',           name: 'Gemini 2.5 Flash',          provider: 'Google',    inputPer1M: 0.30,  outputPer1M: 2.50 },
+  // ── OpenAI ───────────────────────────────────────────────────────────────────
+  { id: 'gpt-5.1',                    name: 'GPT-5.1',                   provider: 'OpenAI',    inputPer1M: 1.25,  outputPer1M: 10.00 },
+  { id: 'gpt-5-codex',                name: 'GPT-5 Codex',               provider: 'OpenAI',    inputPer1M: 1.25,  outputPer1M: 10.00 },
+  { id: 'gpt-5-mini',                 name: 'GPT-5 Mini',                provider: 'OpenAI',    inputPer1M: 0.25,  outputPer1M: 2.00 },
+  { id: 'gpt-5-fast',                 name: 'GPT-5 Fast',                provider: 'OpenAI',    inputPer1M: 2.50,  outputPer1M: 20.00 },
+  { id: 'gpt-5.2',                    name: 'GPT-5.2',                   provider: 'OpenAI',    inputPer1M: 1.75,  outputPer1M: 14.00 },
+  { id: 'gpt-5.2-codex',              name: 'GPT-5.2 Codex',             provider: 'OpenAI',    inputPer1M: 1.75,  outputPer1M: 14.00 },
+  { id: 'gpt-5.6-sol',                name: 'GPT-5.6 Sol',               provider: 'OpenAI',    inputPer1M: 5.00,  outputPer1M: 30.00 },
+  { id: 'gpt-5.6-terra',              name: 'GPT-5.6 Terra',             provider: 'OpenAI',    inputPer1M: 2.50,  outputPer1M: 15.00 },
+  { id: 'gpt-5.6-luna',               name: 'GPT-5.6 Luna',              provider: 'OpenAI',    inputPer1M: 1.00,  outputPer1M: 6.00 },
+  { id: 'gpt-5.5',                    name: 'GPT-5.5',                   provider: 'OpenAI',    inputPer1M: 5.00,  outputPer1M: 30.00 },
+  { id: 'gpt-5.4',                    name: 'GPT-5.4',                   provider: 'OpenAI',    inputPer1M: 2.50,  outputPer1M: 15.00 },
+  { id: 'gpt-5.4-mini',               name: 'GPT-5.4 Mini',              provider: 'OpenAI',    inputPer1M: 0.75,  outputPer1M: 4.50 },
+  { id: 'gpt-5.4-nano',               name: 'GPT-5.4 Nano',              provider: 'OpenAI',    inputPer1M: 0.20,  outputPer1M: 1.25 },
+  { id: 'gpt-5.3-codex',              name: 'GPT-5.3 Codex',             provider: 'OpenAI',    inputPer1M: 1.75,  outputPer1M: 14.00 },
+  { id: 'gpt-5.1-codex',              name: 'GPT-5.1 Codex',             provider: 'OpenAI',    inputPer1M: 1.25,  outputPer1M: 10.00 },
+  { id: 'gpt-5.1-codex-mini',         name: 'GPT-5.1 Codex Mini',        provider: 'OpenAI',    inputPer1M: 0.25,  outputPer1M: 2.00 },
+  { id: 'gpt-5.1-codex-max',          name: 'GPT-5.1 Codex Max',         provider: 'OpenAI',    inputPer1M: 1.25,  outputPer1M: 10.00 },
   // ── Cursor ───────────────────────────────────────────────────────────────────
-  { id: 'composer-2',               name: 'Composer 2',         provider: 'Cursor',    inputPer1M: 0.50,  outputPer1M: 2.50  },
-  // ── xAI ──────────────────────────────────────────────────────────────────────
-  { id: 'grok-4.20',                name: 'Grok 4.20',          provider: 'xAI',       inputPer1M: 2.00,  outputPer1M: 6.00  },
+  { id: 'grok-4-5',                   name: 'Grok 4.5',                  provider: 'Cursor',    inputPer1M: 2.00,  outputPer1M: 6.00 },
+  { id: 'composer-1',                 name: 'Composer 1',                provider: 'Cursor',    inputPer1M: 1.25,  outputPer1M: 10.00 },
+  { id: 'composer-2.5',               name: 'Composer 2.5',              provider: 'Cursor',    inputPer1M: 0.50,  outputPer1M: 2.50 },
+  // ── Other ────────────────────────────────────────────────────────────────────
+  { id: 'kimi-k2.7-code',             name: 'Kimi K2.7 Code',            provider: 'Moonshot',  inputPer1M: 0.95,  outputPer1M: 4.00 },
+  { id: 'glm-5.2',                    name: 'GLM-5.2',                   provider: 'Z.ai',      inputPer1M: 1.40,  outputPer1M: 4.40 },
 ];
 
 const CURSOR_DOC_MODEL_OVERRIDES = {
-  'claude-4-6-sonnet': 'claude-sonnet-4-6',
-  'claude-opus-4-7': 'claude-opus-4-7',
-  'cursor-composer-2': 'composer-2',
-  'gemini-3-1-pro': 'gemini-3.1-pro',
-  'gpt-5-3-codex': 'gpt-5.3-codex',
-  'gpt-5-5': 'gpt-5.5',
-  'grok-4-20': 'grok-4.20',
+  'claude-4-6-sonnet':   'claude-sonnet-4-6',
+  'claude-opus-4-7':     'claude-opus-4-7',
+  'cursor-composer-2':   'composer-2.5',
+  'cursor-composer-2-5': 'composer-2.5',
+  'gemini-3-1-pro':      'gemini-3.1-pro',
+  'gemini-3-5-flash':    'gemini-3.5-flash',
+  'gpt-5-1':             'gpt-5.1',
+  'gpt-5-2':             'gpt-5.2',
+  'gpt-5-3-codex':       'gpt-5.3-codex',
+  'gpt-5-5':             'gpt-5.5',
+  'gpt-5-6-sol':         'gpt-5.6-sol',
+  'gpt-5-6-terra':       'gpt-5.6-terra',
+  'gpt-5-6-luna':        'gpt-5.6-luna',
+  'grok-4-5':            'grok-4-5',
 };
 
 const PROVIDER_LABELS = {
   anthropic: 'Anthropic',
-  cursor: 'Cursor',
-  google: 'Google',
-  openai: 'OpenAI',
-  xai: 'xAI',
+  cursor:    'Cursor',
+  google:    'Google',
+  moonshot:  'Moonshot',
+  openai:    'OpenAI',
+  xai:       'xAI',
+  'z.ai':    'Z.ai',
 };
 
 // Maps LiteLLM registry IDs → CURSOR_MODELS IDs so the live fetch can update
@@ -159,7 +201,9 @@ function parseCursorDocsPricing(html) {
 
 function extractModelsTableChunkUrls(html) {
   const normalized = String(html || '').replace(/\\"/g, '"').replace(/\\u0026/g, '&');
-  const manifests = [...normalized.matchAll(/\d+:I\[\d+,\[((?:"[^"]+?",?)+)\],"ModelsTable"\]/g)];
+  // Use dotall (s) flag + simple (.*?) so the engine doesn't catastrophically
+  // backtrack on the 300+ chunk URLs that now appear in the manifest.
+  const manifests = [...normalized.matchAll(/[0-9a-f]+:I\[\d+,\[(.*?)\],"ModelsTable"\]/gs)];
   if (!manifests.length) return [];
 
   const urls = new Set();

@@ -6,7 +6,8 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const CACHE_KEY = 'pricingCache';
 const HISTORY_KEY = 'pricingHistory';
 const MAX_HISTORY_DAYS = 30; // Keep last 30 days of price history
-const PRICING_SCHEMA_VERSION = 3;
+const PRICING_SCHEMA_VERSION = 4;
+const MIN_LIVE_MODEL_COUNT = 15;
 const CURSOR_PRICING_URL = 'https://cursor.com/docs/models-and-pricing';
 const LITELLM_PRICING_URL = 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
 
@@ -19,7 +20,9 @@ const CURSOR_MODELS = [
   { id: 'claude-4-sonnet',            name: 'Claude 4 Sonnet',           provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
   { id: 'claude-sonnet-4-6',          name: 'Claude 4.6 Sonnet',         provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
   { id: 'claude-4-5-sonnet',          name: 'Claude 4.5 Sonnet',         provider: 'Anthropic', inputPer1M: 3.00,  outputPer1M: 15.00 },
+  { id: 'claude-opus-5',              name: 'Claude Opus 5',             provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
   { id: 'claude-opus-4-8',            name: 'Claude Opus 4.8',           provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
+  { id: 'claude-fable-5-1',           name: 'Claude Fable 5.1',          provider: 'Anthropic', inputPer1M: 10.00, outputPer1M: 50.00 },
   { id: 'claude-fable-5',             name: 'Claude Fable 5',            provider: 'Anthropic', inputPer1M: 10.00, outputPer1M: 50.00 },
   { id: 'claude-opus-4-7',            name: 'Claude Opus 4.7',           provider: 'Anthropic', inputPer1M: 5.00,  outputPer1M: 25.00 },
   { id: 'claude-opus-4-7-fast',       name: 'Claude Opus 4.7 Fast',      provider: 'Anthropic', inputPer1M: 30.00, outputPer1M: 150.00 },
@@ -30,6 +33,9 @@ const CURSOR_MODELS = [
   // ── Google ───────────────────────────────────────────────────────────────────
   { id: 'gemini-3.1-pro',             name: 'Gemini 3.1 Pro',            provider: 'Google',    inputPer1M: 2.00,  outputPer1M: 12.00 },
   { id: 'gemini-3-pro',               name: 'Gemini 3 Pro',              provider: 'Google',    inputPer1M: 2.00,  outputPer1M: 12.00 },
+  { id: 'gemini-3.8-flash',           name: 'Gemini 3.8 Flash',          provider: 'Google',    inputPer1M: 0.75,  outputPer1M: 3.50 },
+  { id: 'gemini-3.7-flash',           name: 'Gemini 3.7 Flash',          provider: 'Google',    inputPer1M: 0.75,  outputPer1M: 3.50 },
+  { id: 'gemini-3.6-flash',           name: 'Gemini 3.6 Flash',          provider: 'Google',    inputPer1M: 1.50,  outputPer1M: 7.50 },
   { id: 'gemini-3.5-flash',           name: 'Gemini 3.5 Flash',          provider: 'Google',    inputPer1M: 1.50,  outputPer1M: 9.00 },
   { id: 'gemini-3-flash',             name: 'Gemini 3 Flash',            provider: 'Google',    inputPer1M: 0.50,  outputPer1M: 3.00 },
   { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image Preview', provider: 'Google',   inputPer1M: 2.00,  outputPer1M: 12.00 },
@@ -53,10 +59,12 @@ const CURSOR_MODELS = [
   { id: 'gpt-5.1-codex-mini',         name: 'GPT-5.1 Codex Mini',        provider: 'OpenAI',    inputPer1M: 0.25,  outputPer1M: 2.00 },
   { id: 'gpt-5.1-codex-max',          name: 'GPT-5.1 Codex Max',         provider: 'OpenAI',    inputPer1M: 1.25,  outputPer1M: 10.00 },
   // ── Cursor ───────────────────────────────────────────────────────────────────
-  { id: 'grok-4-5',                   name: 'Grok 4.5',                  provider: 'Cursor',    inputPer1M: 2.00,  outputPer1M: 6.00 },
+  { id: 'grok-4.6',                   name: 'Grok 4.6',                  provider: 'Cursor',    inputPer1M: 2.00,  outputPer1M: 6.00 },
+  { id: 'grok-4.5',                   name: 'Grok 4.5',                  provider: 'Cursor',    inputPer1M: 2.00,  outputPer1M: 6.00 },
   { id: 'composer-1',                 name: 'Composer 1',                provider: 'Cursor',    inputPer1M: 1.25,  outputPer1M: 10.00 },
   { id: 'composer-2.5',               name: 'Composer 2.5',              provider: 'Cursor',    inputPer1M: 0.50,  outputPer1M: 2.50 },
   // ── Other ────────────────────────────────────────────────────────────────────
+  { id: 'kimi-k3',                    name: 'Kimi K3',                   provider: 'Moonshot',  inputPer1M: 3.00,  outputPer1M: 15.00 },
   { id: 'kimi-k2.7-code',             name: 'Kimi K2.7 Code',            provider: 'Moonshot',  inputPer1M: 0.95,  outputPer1M: 4.00 },
   { id: 'glm-5.2',                    name: 'GLM-5.2',                   provider: 'Z.ai',      inputPer1M: 1.40,  outputPer1M: 4.40 },
 ];
@@ -68,14 +76,19 @@ const CURSOR_DOC_MODEL_OVERRIDES = {
   'cursor-composer-2-5': 'composer-2.5',
   'gemini-3-1-pro':      'gemini-3.1-pro',
   'gemini-3-5-flash':    'gemini-3.5-flash',
+  'gemini-3-6-flash':    'gemini-3.6-flash',
+  'gemini-3-7-flash':    'gemini-3.7-flash',
+  'gemini-3-8-flash':    'gemini-3.8-flash',
   'gpt-5-1':             'gpt-5.1',
   'gpt-5-2':             'gpt-5.2',
   'gpt-5-3-codex':       'gpt-5.3-codex',
+  'gpt-5-4':             'gpt-5.4',
   'gpt-5-5':             'gpt-5.5',
   'gpt-5-6-sol':         'gpt-5.6-sol',
   'gpt-5-6-terra':       'gpt-5.6-terra',
   'gpt-5-6-luna':        'gpt-5.6-luna',
-  'grok-4-5':            'grok-4-5',
+  'grok-4-5':            'grok-4.5',
+  'grok-4-6':            'grok-4.6',
 };
 
 const PROVIDER_LABELS = {
@@ -99,7 +112,8 @@ function fallback() {
   return {
     schemaVersion: PRICING_SCHEMA_VERSION,
     models: CURSOR_MODELS.map(m => ({ ...m })),
-    source: 'cursor-docs',
+    source: 'bundled',
+    origin: 'local',
     lastUpdated: Date.now(),
   };
 }
@@ -292,14 +306,27 @@ function fetchText(url, timeout = 8000, redirectsRemaining = 3) {
 
 async function fetchFromCursorDocs() {
   const html = await fetchText(CURSOR_PRICING_URL);
-  let models = parseCursorDocsPricing(html);
+  if (!html) return null;
 
-  if (!models.length) {
-    const chunkUrls = extractModelsTableChunkUrls(html);
-    const chunks = await Promise.all(chunkUrls.map(chunkUrl => fetchText(chunkUrl)));
-    for (const js of chunks) {
-      models = parseCursorModelsChunk(js);
-      if (models.length) break;
+  // The HTML table is only the featured/visible subset (about 8 models).
+  // The full catalog, including "Show more models", lives in the ModelsTable JS chunk.
+  const chunkUrls = extractModelsTableChunkUrls(html);
+  const chunks = await Promise.all(chunkUrls.map(chunkUrl => fetchText(chunkUrl)));
+  let models = [];
+  let parseMethod = null;
+  for (const js of chunks) {
+    const parsed = parseCursorModelsChunk(js);
+    if (parsed.length > models.length) {
+      models = parsed;
+      parseMethod = 'models-table';
+    }
+  }
+
+  if (models.length < MIN_LIVE_MODEL_COUNT) {
+    const htmlModels = parseCursorDocsPricing(html);
+    if (htmlModels.length > models.length) {
+      models = htmlModels;
+      parseMethod = 'html-table';
     }
   }
 
@@ -308,6 +335,8 @@ async function fetchFromCursorDocs() {
     schemaVersion: PRICING_SCHEMA_VERSION,
     models: models.map(({ slug, ...model }) => model),
     source: 'cursor-docs-live',
+    origin: 'website',
+    parseMethod,
     lastUpdated: Date.now(),
   };
 }
@@ -318,7 +347,13 @@ async function fetchFromLiteLLM() {
 
   try {
     const models = mergeLiteLLM(JSON.parse(body));
-    return { schemaVersion: PRICING_SCHEMA_VERSION, models, source: 'litellm', lastUpdated: Date.now() };
+    return {
+      schemaVersion: PRICING_SCHEMA_VERSION,
+      models,
+      source: 'litellm',
+      origin: 'website',
+      lastUpdated: Date.now(),
+    };
   } catch {
     return null;
   }
@@ -371,12 +406,18 @@ async function saveLatestHistorySnapshot(state, data) {
 function isFreshCache(cached) {
   if (!cached?.lastUpdated) return false;
   if (cached.schemaVersion !== PRICING_SCHEMA_VERSION) return false;
+  if ((cached.models?.length || 0) < MIN_LIVE_MODEL_COUNT) return false;
 
   // Pre-fix caches could have a fresh timestamp but still contain stale
   // hardcoded prices. Refresh once per day so installed users migrate quickly.
   if (!sameDay(cached.lastUpdated, Date.now())) return false;
 
   return Date.now() - cached.lastUpdated < CACHE_TTL_MS;
+}
+
+function persistablePricing(data) {
+  const { origin, ...stored } = data || {};
+  return stored;
 }
 
 function shouldNotifyUpdate(cached, data) {
@@ -405,7 +446,8 @@ class PricingEngine {
   /** Returns cached data or fallback — never null. */
   getCached() {
     const cached = this._state.get(CACHE_KEY);
-    return cached || fallback();
+    if (!cached) return fallback();
+    return { ...cached, origin: 'cache' };
   }
 
   /** Sets a callback that fires whenever pricing data is refreshed. */
@@ -428,15 +470,17 @@ class PricingEngine {
     if (!force && cached && isFreshCache(cached)) {
       // Still save a history snapshot even when serving from cache,
       // so the chart accumulates data points over multiple sessions.
-      await this._savePriceHistory(cached);
-      return cached;
+      const data = { ...cached, origin: 'cache' };
+      await this._savePriceHistory(data);
+      return data;
     }
 
     const fetched = await fetchLivePricing();
     const canReuseCached = cached?.schemaVersion === PRICING_SCHEMA_VERSION;
-    const data = fetched || (canReuseCached ? { ...cached, stale: true } : fallback());
+    const data = fetched
+      || (canReuseCached ? { ...cached, stale: true, origin: 'cache' } : fallback());
 
-    await this._state.update(CACHE_KEY, data);
+    await this._state.update(CACHE_KEY, persistablePricing(data));
     await this._savePriceHistory(data);
     if (force || shouldNotifyUpdate(cached, data)) this._onUpdate?.(data);
     this._scheduleNext();

@@ -33,6 +33,14 @@ function activate(context) {
     )[0];
     if (best) {
       statusBar.text = `$(symbol-numeric) ${best.name} · $${best.inputPer1M.toFixed(2)}/M`;
+      const originLabel = data.origin === 'website' && data.source === 'cursor-docs-live'
+        ? 'just parsed from cursor.com'
+        : data.origin === 'cache' && data.source === 'cursor-docs-live'
+        ? 'local cache of a previous Cursor website parse'
+        : data.source === 'litellm'
+        ? 'LiteLLM fallback'
+        : 'built-in local fallback';
+      statusBar.tooltip = `Best value right now — ${originLabel}`;
     }
   }
 

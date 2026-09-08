@@ -4,6 +4,7 @@ import { Recommendation } from './Recommendation.jsx';
 import { PeakIndicator } from './PeakIndicator.jsx';
 import { Settings } from './Settings.jsx';
 import { sortedModels, getBestModel, formatLastUpdated } from '../utils/recommendation.js';
+import { describePricingSource } from '../utils/pricingSource.js';
 
 export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
   const [showSettings, setShowSettings] = useState(false);
@@ -29,11 +30,14 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
 
   const models = sortedModels(pricing?.models, settings?.visibleModels);
   const best = getBestModel(pricing?.models, settings?.visibleModels);
-  const sourceLabel = pricing?.source === 'cursor-docs-live'
-    ? 'Cursor docs'
-    : pricing?.source === 'litellm'
-    ? 'LiteLLM fallback'
-    : 'fallback';
+  const source = describePricingSource(pricing);
+  const sourceBadgeClass = {
+    live: 'text-green-400 border-green-400/40',
+    cache: 'text-[var(--vscode-descriptionForeground)] border-[var(--vscode-panel-border)]',
+    stale: 'text-[var(--vscode-notificationsWarningIcon-foreground)] border-current',
+    fallback: 'text-[var(--vscode-notificationsWarningIcon-foreground)] border-current',
+    local: 'text-[var(--vscode-descriptionForeground)] border-[var(--vscode-panel-border)]',
+  }[source.kind] || 'text-[var(--vscode-descriptionForeground)] border-[var(--vscode-panel-border)]';
 
   return (
     <div className="panel-root">
@@ -48,16 +52,11 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
               {status}
             </span>
           )}
-          {pricing?.stale && (
-            <span className="text-[9px] text-[var(--vscode-notificationsWarningIcon-foreground)] border border-current rounded px-1 opacity-70">
-              stale
-            </span>
-          )}
           <span
-            className="text-[10px] opacity-30 text-[var(--vscode-foreground)]"
-            title={`Pricing source: ${sourceLabel}`}
+            className={`text-[9px] font-semibold tracking-wide uppercase border rounded px-1.5 py-0.5 ${sourceBadgeClass}`}
+            title={source.detail}
           >
-            {pricing?.source === 'litellm' ? '⬡' : '○'}
+            {source.badge}
           </span>
           <button
             onClick={onOpenCharts}
@@ -121,14 +120,22 @@ export function Overlay({ pricing, settings, onSaveSettings, onOpenCharts }) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-3 py-2 border-t border-[var(--vscode-panel-border)]">
-            <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">
-              {sourceLabel} · {models.length} models · updated {formatLastUpdated(pricing?.lastUpdated)}
-            </span>
+          <div className="flex items-start justify-between gap-2 px-3 py-2 border-t border-[var(--vscode-panel-border)]">
+            <div className="min-w-0">
+              <div
+                className="text-[10px] text-[var(--vscode-foreground)] opacity-80"
+                title={source.detail}
+              >
+                {source.short}
+              </div>
+              <div className="text-[9px] text-[var(--vscode-descriptionForeground)]">
+                {models.length} models · updated {formatLastUpdated(pricing?.lastUpdated)}
+              </div>
+            </div>
             <button
               onClick={() => window.electronAPI.refreshPricing()}
-              className="text-[10px] text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)] transition-colors"
-              title="Refresh pricing"
+              className="text-[10px] text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)] transition-colors flex-shrink-0"
+              title="Fetch latest prices from Cursor’s website"
             >
               ↻
             </button>

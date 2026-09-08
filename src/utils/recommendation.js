@@ -13,11 +13,13 @@ export function effectiveCost(model) {
 export function sortedModels(models, visibleModels = null) {
   if (!models?.length) return [];
 
-  const visible = visibleModels
+  const visible = visibleModels?.length
     ? models.filter((m) => visibleModels.includes(m.id))
     : models;
+  // Ignore a stale allowlist that no longer matches any live model IDs.
+  const usable = visible.length ? visible : models;
 
-  return [...visible].sort((a, b) => effectiveCost(a) - effectiveCost(b));
+  return [...usable].sort((a, b) => effectiveCost(a) - effectiveCost(b));
 }
 
 /**

@@ -6,12 +6,12 @@ const REFRESH_OPTIONS = [1, 3, 6, 12, 24];
 // Fallback alert models used before live pricing arrives.
 const FALLBACK_ALERT_MODELS = [
   { id: 'claude-sonnet-5',   name: 'Claude Sonnet 5' },
-  { id: 'claude-opus-4-8',   name: 'Claude Opus 4.8' },
+  { id: 'claude-opus-5',     name: 'Claude Opus 5' },
   { id: 'gpt-5.5',           name: 'GPT-5.5' },
   { id: 'gpt-5.4-nano',      name: 'GPT-5.4 Nano' },
   { id: 'gemini-3.1-pro',    name: 'Gemini 3.1 Pro' },
   { id: 'composer-2.5',      name: 'Composer 2.5' },
-  { id: 'grok-4-5',          name: 'Grok 4.5' },
+  { id: 'grok-4.6',          name: 'Grok 4.6' },
 ];
 
 export function Settings({ settings, models = [], onSave, onClose }) {
